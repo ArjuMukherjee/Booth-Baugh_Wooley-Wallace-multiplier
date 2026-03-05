@@ -98,12 +98,6 @@ Steps:
 
 ## Waveform Output
 
-Example location:
-
-```
-results/waveforms/waveform.png
-```
-
 Insert image in GitHub like this:
 
 ![Simulation Waveform](results/waveforms/waveform.png)
