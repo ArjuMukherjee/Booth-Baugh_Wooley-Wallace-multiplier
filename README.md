@@ -1,149 +1,79 @@
-# Booth–Baugh-Wooley–Wallace Multiplier
+# High-Performance Hybrid MAC Unit
 
 ## Overview
-This repository implements a **high-speed 8×8 signed binary multiplier** using a hybrid architecture that combines:
+This repository implements a **16-bit Multiply-Accumulate (MAC) Unit** designed for high-speed digital signal processing (DSP). [cite_start]This architecture features a **Hybrid Wallace Tree Accumulator**, which integrates the feedback term directly into the partial product reduction stages[cite: 33]. This design minimizes the critical path delay compared to traditional architectures that use a separate post-multiplication adder.
 
-- **Radix-8 Booth Encoding**
-- **Baugh-Wooley Signed Multiplication Correction**
-- **Wallace Tree Reduction**
-
-The goal of this design is to **reduce the number of partial products and improve multiplication speed**, making it suitable for high-performance digital systems such as **DSP units, ALUs, and FPGA/ASIC implementations**.
+### Key Features
+* [cite_start]**Radix-8 Booth Encoding:** Reduces the number of partial products to only 3 by grouping bits into triplets[cite: 4, 32].
+* [cite_start]**Hybrid Wallace Tree:** Merges the 16-bit accumulator feedback directly into the reduction tree[cite: 33].
+* [cite_start]**Signed Arithmetic:** Specifically designed for two's complement signed 8-bit inputs[cite: 2, 31].
+* [cite_start]**Optimized Critical Path:** Uses parallel reduction via Carry-Save Addition (CSA) before the final summation[cite: 25, 27].
 
 ---
 
 # Architecture
 
-The multiplier consists of three main stages:
+The MAC unit operates through three distinct hardware stages:
 
-## 1. Radix-8 Booth Encoder
-The multiplier operand is encoded using **Radix-8 Booth encoding**, which groups **3 bits of the multiplier at a time**.
+### 1. Partial Product Generation (Booth Encoder)
+[cite_start]The `booth_encoder` module uses **Radix-8 encoding** to generate partial products representing $\{0, \pm 1M, \pm 2M, \pm 3M, \pm 4M\}$[cite: 7, 8, 9, 13].
+* [cite_start]**Hard Multiple Handling:** The module pre-calculates $3M$ (`a_x3`) as $2M + 1M$ to ensure high-speed operation[cite: 3].
+* [cite_start]**Output:** The encoder generates a 30-bit bus (`PP`) representing 3 encoded partial products for the 8x8 operation[cite: 1, 14].
 
-This technique generates partial products corresponding to:
 
-```
-0 × M
-±1 × M
-±2 × M
-±3 × M
-±4 × M
-```
 
-### Advantages
-- Reduces the number of partial products
-- Improves multiplier speed
-- Efficient signed multiplication
+### 2. Hybrid Wallace Tree Accumulator
+The `hybrid_wallace_tree_acc` module is the core innovation of this IP. It takes the 30-bit partial product bus and the 16-bit accumulator feedback (`A`) as inputs[cite: 20].
+* [cite_start]**Stage 1 & 2:** Reduces sign-extension bits and high-order bits of the feedback value[cite: 25, 26].
+* [cite_start]**Stage 3:** Compresses all remaining bits into a single Sum and Carry vector[cite: 27, 28].
+* **Advantage:** Injecting the feedback into the tree eliminates the extra delay of a standalone 16-bit accumulator adder.
 
-For this **8×8 multiplier**, the encoder generates:
 
-```
-Total Partial Products = 30
-```
+
+### 3. Final Addition & Storage
+* [cite_start]**Ripple Carry Adder (RCA):** A 16-bit RCA performs the final vector summation to produce the product-sum[cite: 29, 36].
+* [cite_start]**PIPO Register:** A Parallel-In Parallel-Out register stores the result, controlled by a Clock (`clk`), Enable (`E`), and Reset (`rst_n`)[cite: 31, 34].
 
 ---
 
-## 2. Baugh-Wooley Correction
-The **Baugh-Wooley algorithm** is used to correctly handle **two’s complement signed multiplication**.
+# Module Hierarchy
 
-It works by:
-- Transforming negative partial products
-- Rearranging sign bits
-- Adding correction bits
-
-This allows the multiplier to use **regular reduction structures like Wallace trees** without errors caused by sign bits.
+* [cite_start]`MAC_IP.v`: Top-level wrapper for the MAC system[cite: 31].
+* [cite_start]`booth_encoder.v`: Radix-8 encoder and multiplexer logic[cite: 1].
+* [cite_start]`hybrid_wallace_tree_acc.v`: The custom reduction tree with integrated feedback[cite: 20].
+* [cite_start]`ripple_carry_adder.v`: 16-bit final summation stage[cite: 36].
+* [cite_start]`full_adder.v` / `half_adder.v`: Basic arithmetic building blocks[cite: 16, 18].
 
 ---
 
-## 3. Wallace Tree Reduction
-The generated partial products are compressed using a **Wallace Tree structure**.
-
-The Wallace Tree uses:
-- **Full Adders**
-- **Half Adders**
-- **Carry Save Adders**
-
-to reduce multiple rows of partial products into **two final rows**, which are then summed using a ripple carry adder.
-
-### Benefits
-- Parallel reduction of partial products
-- Reduced propagation delay
-- High-speed multiplication
-
----
-
-# Performance
+# Performance Specifications
 
 | Parameter | Value |
-|--------|--------|
-| Multiplier Size | 8 × 8 |
-| Encoding | Radix-8 Booth |
-| Sign Handling | Baugh-Wooley |
-| Reduction Method | Wallace Tree |
-| Partial Products Generated | 30 |
-| Average Propagation Delay | ~10 ns |
+| :--- | :--- |
+| **Multiplier Size** | [cite_start]8 × 8 Signed [cite: 31] |
+| **Accumulator Width** | [cite_start]16-bit [cite: 31] |
+| **Encoding** | [cite_start]Radix-8 Booth [cite: 4] |
+| **Reduction Method** | [cite_start]Hybrid Wallace Tree [cite: 33] |
+| **Final Adder** | [cite_start]16-bit Ripple Carry [cite: 36] |
 
 ---
 
-# Simulation
+# Simulation & Usage
 
-The design was simulated using **Verilog testbench**.
+### 1. Setup
+Add all `.v` source files to your project in Vivado, ModelSim, or Quartus.
 
-Steps:
-1. Compile all modules
-2. Run the testbench
-3. Verify the output product against expected multiplication results
-
----
-
-# Results
-
-## Waveform Output
-
-Insert image in GitHub like this:
-
-![Simulation Waveform](waveform.png)
-
----
-
-## TCL Console Output
-
-![TCL Console Output](console_output.png)
-
----
-
-# Applications
-
-This multiplier architecture can be used in:
-
-- Digital Signal Processing (DSP)
-- Arithmetic Logic Units (ALU)
-- Image Processing Hardware
-- FPGA Accelerators
-- CPU Arithmetic Units
-
----
-
-# Future Improvements
-
-Possible improvements to this design include:
-
-- Pipelining the Wallace Tree for higher clock frequency
-- Extending the design to **16×16 or 32×32 multipliers**
-- Using a **Carry Lookahead Adder (CLA)** or **Kogge-Stone Adder** for the final stage
-- FPGA resource optimization
+### 2. Operation
+1.  [cite_start]Apply a low pulse to `rst_n` to clear the accumulator to 0[cite: 31].
+2.  [cite_start]Set the Enable signal `E` to high[cite: 31].
+3.  On every rising edge of `clk`, the unit will compute:  
+    $OUT = OUT + (A \times B)$
 
 ---
 
 # Author
-
-**Arju Mukherjee**
-
-B.Tech Electronics / VLSI Enthusiast  
-Interested in **Digital Design, Computer Architecture, and High-Performance Hardware Systems**
-
----
+**Arju Mukherjee** B.Tech Electronics / VLSI Enthusiast  
+Specializing in Digital Design and Computer Architecture.
 
 # License
-
 This project is released under the **MIT License**.
-
-Feel free to use, modify, and distribute the design.
