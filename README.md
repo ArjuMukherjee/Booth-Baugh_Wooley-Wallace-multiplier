@@ -58,6 +58,33 @@ The `hybrid_wallace_tree_acc` module is the core innovation of this IP. It takes
 
 ---
 
+## Simulation Results
+
+### Waveform Analysis
+The simulation waveform below demonstrates the MAC operation with various input combinations:
+
+![MAC Unit Waveform](waveform.png)
+
+*Figure 1: Simulation waveform showing clock, reset, enable, inputs A/B, and output MAC result*
+
+### Console Output
+The simulation console output verifies the correct functionality with multiple test cases:
+
+![Console Output](console_output.png)
+
+*Figure 2: Console output showing test cases and computed MAC results*
+
+### Test Cases Performed
+| Test Case | A (Input) | B (Input) | Expected Operation | Result |
+|-----------|-----------|-----------|-------------------|--------|
+| Reset Test | - | - | Clear accumulator | PASS |
+| Test 1 | 5 | 3 | 0 + (5×3) = 15 | PASS |
+| Test 2 | -4 | 7 | 15 + (-4×7) = -13 | PASS |
+| Test 3 | -2 | -6 | -13 + (12) = -1 | PASS |
+| Test 4 | 10 | -3 | -1 + (-30) = -31 | PASS |
+
+---
+
 # Simulation & Usage
 
 ### 1. Setup
